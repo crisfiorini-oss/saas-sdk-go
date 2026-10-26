@@ -3,22 +3,24 @@
 ## Unreleased
 
 The journal contract uses the exact module-saas-starter development source in
-`SOURCE.txt`. The Core floor is the compatible published v0.19.6 release.
+`SOURCE.txt`. Shared installation approval types come from the canonical
+Authority client; its declared Core dependency sets the development floor.
 
 ### Changed
 
 - Refresh development provenance to the rebased module-saas-starter journal
   source recorded in `SOURCE.txt`, with module package version 0.2.0. The full
-  generated API is byte-identical; no SDK release is published.
+  generated API carries the latest host fields, including installation approval
+  and workload operation admission. No SDK release is published.
 
-- **Core floor: `v0.19.6`**, replacing the development pseudo-version
-  `v0.19.6-0.20261018051341-b81d92e6feda`. The dependency requires Go 1.27.3,
-  which is now this SDK's minimum too. Core
-  `22ddde98` removed the approved build from a Work Context: `SealSource` lost
-  `ApprovedBuild` and `ErrNoApprovedBuild` is gone, so v0.1.3 does not compile
-  for any consumer that requires that Core. Core v0.19.6 contains the required
-  APIs. Core v0.19.5 still requires `SealSource.ApprovedBuild` and
-  cannot build this release; MVS never selects it beside this floor.
+- **Shared installation approval bindings** resolve to the existing Authority
+  client at `v0.0.0-20261026143932-67b85b14a942`, rather than generating a second
+  `host.*` descriptor tree. That client requires Core
+  `v0.19.7-0.20261026092055-b23dc13543b2`, the SDK's development floor. Core
+  `v0.19.6` supplies the earlier Work Context APIs but does not satisfy the
+  canonical client's declared floor. These are development source pins;
+  publication remains gated on actual compatible owner releases. Go 1.27.3
+  remains the minimum toolchain.
 - **`gen/` adds the journal and delivery contract to the current host schema.**
   The complete host-owned `saas/` tree is generated from the exact development
   source recorded in `SOURCE.txt`, with buf 1.73.0 and the existing plugin pins.
@@ -41,7 +43,8 @@ The journal contract uses the exact module-saas-starter development source in
 
 - The journal generation adds methods to generated interfaces:
   `AuditServiceClient`/`Handler.DeliverAuditEvents` and
-  `.LookupDeliverAuditEvents`, and `ModuleCapabilitiesServiceClient`/`Handler.ReadJournal`.
+  `.LookupDeliverAuditEvents`, `ModuleCapabilitiesServiceClient`/`Handler.ReadJournal`,
+  and `WorkContextServiceClient`/`Handler.AdmitWorkloadOperation`.
   Implementers must provide the methods or embed the generated
   `Unimplemented…Handler`. No existing generated symbol is removed relative
   to current main.
@@ -67,6 +70,12 @@ The journal contract uses the exact module-saas-starter development source in
   Embedding the generated `Unimplemented…Handler` absorbs the handler half.
 
 ### Added
+
+- The refreshed host schema includes installation revision and explicit
+  `InstallSolutionRequest.Approval` (`ConsentApproval` from Authority), workload
+  operation admission, task operation bindings, declaration-digest checks,
+  viewer Work Context fields and service interface-package inventory. These
+  are the host's contracts; the SDK adds no alternate admission or approval path.
 
 - `Client.ReadJournal(ctx, after, limit, types, deliveryBindings) (JournalPage, error)`
   calls `ModuleCapabilitiesService.ReadJournal` on the authority endpoint as the
