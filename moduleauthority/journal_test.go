@@ -228,6 +228,17 @@ func TestReadJournalAnEntryWithoutATimestampOrDataDecodes(t *testing.T) {
 	}
 }
 
+func TestReadJournalRefusesInvalidTimestamps(t *testing.T) {
+	for _, stamp := range []*timestamppb.Timestamp{{Seconds: 253402300800}, {Nanos: 1000000000}} {
+		h := newHost(t)
+		client := h.client(t, moduleCredentials)
+		h.authority.commit(&v1.ModuleJournalEntry{Position: "p7", EventId: "event-7", Type: journalType, OccurredAt: stamp})
+		if _, err := client.ReadJournal(t.Context(), "", 1, []string{journalType}, nil); !errors.Is(err, ErrInvalidJournalPage) {
+			t.Fatalf("invalid timestamp accepted: %v", err)
+		}
+	}
+}
+
 // A refusal keeps the host's own code, like every other authority call: a
 // caller that is not a cross-tenant module principal is PermissionDenied, and
 // nothing is returned that could be mistaken for an empty journal.

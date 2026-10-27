@@ -745,17 +745,18 @@ denial. The SDK does not automatically retry broker failures. Malformed initial
 HTTP headers provide no usable status and produce a transport error; malformed bodies cannot
 change a successfully parsed non-200 status into a transport failure.
 
-### Journal reads with a supplied module credential
+### Journal client reuse
 
-`moduleauthority.NewJournalReader` accepts a `JournalReaderConfig` with the
-resolved Accounts `Authority` endpoint and a `WorkContext(context.Context)`
-source. The source must return a host-valid sealed module capability for
-audience `module-capabilities`. Generic shared Authority `Issue` currently
-requires an operation binding and cannot mint that unbound identity. The issuer
-must be composed and qualified separately. Each read calls the source afresh, uses the existing Accounts
-HTTP/2 gRPC transport and journal decoder, and carries no legacy internal token.
-The caller's context bounds both issuance and the read. Call `Close` at shutdown.
+`moduleauthority.Client.ReadJournal` reuses this client's broker, module-credential
+cache and refresh-once behavior, existing Accounts HTTP/2 transport, and journal
+projection. The host protobuf constraints validate requests before credentials
+are obtained. Invalid nonempty timestamps are refused before a page is returned.
+No additional reader factory or credential-producer API is added.
+
+Generic shared Authority `Issue` requires an operation binding and cannot mint
+an unbound `module-capabilities` identity. A consumer must qualify its credential
+route; transport tests alone do not establish producer compatibility.
 
 | Build or reuse | Searched and verified | Result |
 | --- | --- | --- |
-| Journal reads with externally issued authority | Existing journal facade, `authorityEndpoint`, Core sealed-capability reader and protobuf request validation | Extend the published SDK with a journal-only credential source. Reuse transport and decoding; the credential producer remains an unresolved integration prerequisite. No new issuer, copied descriptors, credential cache or publication repository. |
+| Journal client | Existing Client module credentials, cache, callAsModule transport, protobuf request constraints and journal tests | Extend Client.ReadJournal. Remove the unqualified second reader factory; reuse the existing broker, cache and decoder instead of adding a credential API. |

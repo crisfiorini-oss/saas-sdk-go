@@ -8,13 +8,12 @@ Authority client; its declared Core dependency sets the development floor.
 
 ### Changed
 
-- Add `moduleauthority.NewJournalReader` for a caller-supplied host-valid
-  module capability source. Its issuer must be qualified separately: generic
-  shared Authority Issue does not mint an unbound module identity. The reader
-  reuses the existing Accounts transport and journal
-  decoder with a fresh sealed Work Context source, without gateway broker
-  credentials or token caching. Both journal facades reuse the host protobuf
-  request constraints before obtaining credentials.
+- Reuse the host protobuf request constraints in `Client.ReadJournal` before
+  obtaining credentials; reject invalid supplied timestamps. Keep the existing
+  broker, module-credential cache, refresh-once behavior and Accounts transport.
+  No second reader factory or credential-producer API is added. Generic shared
+  Authority Issue does not mint the required unbound module identity; consuming
+  modules must qualify their producer route separately.
 
 - Refresh development provenance to the rebased module-saas-starter journal
   source recorded in `SOURCE.txt`, with module package version 0.2.0. The full

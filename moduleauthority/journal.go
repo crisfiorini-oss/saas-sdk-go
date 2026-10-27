@@ -79,24 +79,24 @@ type JournalPage struct {
 // from an earlier NextAfter is served the same entries again. A rejected module
 // capability is refreshed and retried once, like every authority call.
 func (c *Client) ReadJournal(ctx context.Context, after string, limit int32, types, deliveryBindings []string) (JournalPage, error) {
-	return readJournal(ctx, after, limit, types, deliveryBindings, func(ctx context.Context, request *v1.ModuleReadJournalRequest) (*v1.ModuleReadJournalResponse, error) {
-		return callAsModule(ctx, c, accountsv1connect.ModuleCapabilitiesServiceClient.ReadJournal, request)
-	})
-}
-
-func readJournal(ctx context.Context, after string, limit int32, types, deliveryBindings []string, read func(context.Context, *v1.ModuleReadJournalRequest) (*v1.ModuleReadJournalResponse, error)) (JournalPage, error) {
 	request := &v1.ModuleReadJournalRequest{
 		After: after, Limit: limit, Types: append([]string(nil), types...), DeliveryBindings: append([]string(nil), deliveryBindings...),
 	}
 	if limit > MaxJournalPage || protovalidate.Validate(request) != nil {
 		return JournalPage{}, ErrInvalidJournalRead
 	}
-	res, err := read(ctx, request)
+	res, err := callAsModule(ctx, c, accountsv1connect.ModuleCapabilitiesServiceClient.ReadJournal, request)
 	if err != nil {
 		return JournalPage{}, fmt.Errorf("module authority: read journal: %w", err)
 	}
+	if res == nil {
+		return JournalPage{}, ErrInvalidJournalPage
+	}
 	page := JournalPage{NextAfter: res.GetNextAfter()}
 	for _, e := range res.GetEntries() {
+		if e == nil || (e.GetOccurredAt() != nil && e.GetOccurredAt().CheckValid() != nil) {
+			return JournalPage{}, ErrInvalidJournalPage
+		}
 		entry := JournalEntry{
 			Position: e.GetPosition(), EventID: e.GetEventId(), Type: e.GetType(),
 			OrganizationID: e.GetOrganizationId(), Data: e.GetData().AsMap(),
