@@ -8,6 +8,12 @@ Authority client; its declared Core dependency sets the development floor.
 
 ### Changed
 
+- Add `moduleauthority.NewJournalReader` for callers whose capabilities come
+  from shared Authority. It reuses the existing Accounts transport and journal
+  decoder with a fresh sealed Work Context source, without gateway broker
+  credentials or token caching. Both journal facades reuse the host protobuf
+  request constraints before obtaining credentials.
+
 - Refresh development provenance to the rebased module-saas-starter journal
   source recorded in `SOURCE.txt`, with module package version 0.2.0. The full
   generated API carries the latest host fields, including installation approval

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"buf.build/go/protovalidate"
+
 	v1 "github.com/codefly-dev/saas-sdk-go/gen/saas/accounts/v1"
 	"github.com/codefly-dev/saas-sdk-go/gen/saas/accounts/v1/accountsv1connect"
 )
@@ -14,6 +16,9 @@ import (
 // would refuse as malformed: a page size outside 0..500, no registered type to
 // read, or an empty type or delivery binding id.
 var ErrInvalidJournalRead = errors.New("module authority: invalid journal read")
+
+// ErrInvalidJournalPage refuses a malformed response before exposing it.
+var ErrInvalidJournalPage = errors.New("module authority: invalid journal page")
 
 // JournalStart is the position that means "before the oldest retained entry".
 // The host accepts it wherever it accepts a position (ReadJournal's after, and
@@ -74,25 +79,19 @@ type JournalPage struct {
 // from an earlier NextAfter is served the same entries again. A rejected module
 // capability is refreshed and retried once, like every authority call.
 func (c *Client) ReadJournal(ctx context.Context, after string, limit int32, types, deliveryBindings []string) (JournalPage, error) {
-	if limit < 0 || limit > MaxJournalPage || len(types) == 0 {
+	return readJournal(ctx, after, limit, types, deliveryBindings, func(ctx context.Context, request *v1.ModuleReadJournalRequest) (*v1.ModuleReadJournalResponse, error) {
+		return callAsModule(ctx, c, accountsv1connect.ModuleCapabilitiesServiceClient.ReadJournal, request)
+	})
+}
+
+func readJournal(ctx context.Context, after string, limit int32, types, deliveryBindings []string, read func(context.Context, *v1.ModuleReadJournalRequest) (*v1.ModuleReadJournalResponse, error)) (JournalPage, error) {
+	request := &v1.ModuleReadJournalRequest{
+		After: after, Limit: limit, Types: append([]string(nil), types...), DeliveryBindings: append([]string(nil), deliveryBindings...),
+	}
+	if limit > MaxJournalPage || protovalidate.Validate(request) != nil {
 		return JournalPage{}, ErrInvalidJournalRead
 	}
-	for _, t := range types {
-		if t == "" {
-			return JournalPage{}, ErrInvalidJournalRead
-		}
-	}
-	for _, b := range deliveryBindings {
-		if b == "" {
-			return JournalPage{}, ErrInvalidJournalRead
-		}
-	}
-	res, err := callAsModule(ctx, c, accountsv1connect.ModuleCapabilitiesServiceClient.ReadJournal, &v1.ModuleReadJournalRequest{
-		After:            after,
-		Limit:            limit,
-		Types:            append([]string(nil), types...),
-		DeliveryBindings: append([]string(nil), deliveryBindings...),
-	})
+	res, err := read(ctx, request)
 	if err != nil {
 		return JournalPage{}, fmt.Errorf("module authority: read journal: %w", err)
 	}
