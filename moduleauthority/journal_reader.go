@@ -10,8 +10,9 @@ import (
 )
 
 // JournalReaderConfig supplies Accounts' transport and a source of module Work
-// Contexts. WorkContext typically calls shared Authority Issue for audience
-// module-capabilities. The workload credential stays with that authority.
+// Contexts valid for the host module-capabilities audience. The caller must
+// compose a compatible issuer; generic Authority Issue does not mint this
+// unbound identity. The reader receives no workload credential.
 type JournalReaderConfig struct {
 	Authority         Authority
 	AllowInsecureHTTP bool

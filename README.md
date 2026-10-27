@@ -745,16 +745,17 @@ denial. The SDK does not automatically retry broker failures. Malformed initial
 HTTP headers provide no usable status and produce a transport error; malformed bodies cannot
 change a successfully parsed non-200 status into a transport failure.
 
-### Journal reads with shared Authority
+### Journal reads with a supplied module credential
 
 `moduleauthority.NewJournalReader` accepts a `JournalReaderConfig` with the
 resolved Accounts `Authority` endpoint and a `WorkContext(context.Context)`
-source. The source requests a sealed module capability from shared Authority
-for audience `module-capabilities`; the workload credential goes only to
-Authority. Each read calls the source afresh, uses the existing Accounts
+source. The source must return a host-valid sealed module capability for
+audience `module-capabilities`. Generic shared Authority `Issue` currently
+requires an operation binding and cannot mint that unbound identity. The issuer
+must be composed and qualified separately. Each read calls the source afresh, uses the existing Accounts
 HTTP/2 gRPC transport and journal decoder, and carries no legacy internal token.
 The caller's context bounds both issuance and the read. Call `Close` at shutdown.
 
 | Build or reuse | Searched and verified | Result |
 | --- | --- | --- |
-| Journal reads with externally issued authority | Existing journal facade, `authorityEndpoint`, Core sealed-capability reader and protobuf request validation | Extend the published SDK with a journal-only credential source. Reuse transport and decoding without a gateway broker, copied descriptors, credential cache or another publication repository. |
+| Journal reads with externally issued authority | Existing journal facade, `authorityEndpoint`, Core sealed-capability reader and protobuf request validation | Extend the published SDK with a journal-only credential source. Reuse transport and decoding; the credential producer remains an unresolved integration prerequisite. No new issuer, copied descriptors, credential cache or publication repository. |

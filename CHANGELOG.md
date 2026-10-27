@@ -8,8 +8,10 @@ Authority client; its declared Core dependency sets the development floor.
 
 ### Changed
 
-- Add `moduleauthority.NewJournalReader` for callers whose capabilities come
-  from shared Authority. It reuses the existing Accounts transport and journal
+- Add `moduleauthority.NewJournalReader` for a caller-supplied host-valid
+  module capability source. Its issuer must be qualified separately: generic
+  shared Authority Issue does not mint an unbound module identity. The reader
+  reuses the existing Accounts transport and journal
   decoder with a fresh sealed Work Context source, without gateway broker
   credentials or token caching. Both journal facades reuse the host protobuf
   request constraints before obtaining credentials.
